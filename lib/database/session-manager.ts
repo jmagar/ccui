@@ -1,6 +1,7 @@
 import { eq, desc, and, gte } from 'drizzle-orm';
+
 import { db } from './connection';
-import { sessions, messages, sessionLogs, type Session, type NewSession, type Message, type NewMessage, type NewSessionLog } from './schema';
+import { sessions, messages, sessionLogs, type Session, type NewSession, type Message, type NewMessage } from './schema';
 
 export class DatabaseSessionManager {
   // Session operations
@@ -11,6 +12,10 @@ export class DatabaseSessionManager {
       updatedAt: new Date(),
       lastActivity: new Date(),
     }).returning();
+
+    if (!session) {
+      throw new Error('Failed to create session');
+    }
 
     await this.logSessionActivity(sessionData.sessionId, 'created', {
       projectPath: sessionData.projectPath,
@@ -47,14 +52,19 @@ export class DatabaseSessionManager {
   }
 
   async deleteSession(sessionId: string): Promise<boolean> {
-    const result = await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
-    
-    if (result.rowCount && result.rowCount > 0) {
-      await this.logSessionActivity(sessionId, 'deleted');
-      return true;
+    try {
+      const result = await db.delete(sessions).where(eq(sessions.sessionId, sessionId)).returning();
+      
+      if (result.length > 0) {
+        await this.logSessionActivity(sessionId, 'deleted');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      return false;
     }
-    
-    return false;
   }
 
   async listSessions(filters: {
@@ -64,32 +74,39 @@ export class DatabaseSessionManager {
     limit?: number;
     offset?: number;
   } = {}): Promise<{ sessions: Session[]; total: number }> {
-    let query = db.select().from(sessions);
-    let countQuery = db.select({ count: sessions.id }).from(sessions);
-
-    // Apply filters
+    const conditions = [];
+    
+    // Build conditions array
     if (filters.status) {
-      query = query.where(eq(sessions.status, filters.status as any));
-      countQuery = countQuery.where(eq(sessions.status, filters.status as any));
+      conditions.push(eq(sessions.status, filters.status as any));
     }
     
     if (filters.projectPath) {
-      query = query.where(eq(sessions.projectPath, filters.projectPath));
-      countQuery = countQuery.where(eq(sessions.projectPath, filters.projectPath));
+      conditions.push(eq(sessions.projectPath, filters.projectPath));
     }
     
     if (filters.since) {
-      query = query.where(gte(sessions.lastActivity, filters.since));
-      countQuery = countQuery.where(gte(sessions.lastActivity, filters.since));
+      conditions.push(gte(sessions.lastActivity, filters.since));
+    }
+
+    // Apply conditions
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    let query = db.select().from(sessions);
+    let countQuery = db.select({ count: sessions.id }).from(sessions);
+    
+    if (whereClause) {
+      query = query.where(whereClause) as any;
+      countQuery = countQuery.where(whereClause) as any;
     }
 
     // Apply pagination
-    query = query.orderBy(desc(sessions.lastActivity));
+    query = query.orderBy(desc(sessions.lastActivity)) as any;
     if (filters.limit) {
-      query = query.limit(filters.limit);
+      query = query.limit(filters.limit) as any;
     }
     if (filters.offset) {
-      query = query.offset(filters.offset);
+      query = query.offset(filters.offset) as any;
     }
 
     const [sessionsResult, countResult] = await Promise.all([
@@ -109,6 +126,10 @@ export class DatabaseSessionManager {
       ...messageData,
       createdAt: new Date(),
     }).returning();
+
+    if (!message) {
+      throw new Error('Failed to create message');
+    }
 
     // Update session statistics
     await this.updateSessionStats(messageData.sessionId, {
@@ -132,20 +153,23 @@ export class DatabaseSessionManager {
     offset?: number;
     role?: string;
   } = {}): Promise<{ messages: Message[]; total: number }> {
-    let query = db.select().from(messages).where(eq(messages.sessionId, sessionId));
-    let countQuery = db.select({ count: messages.id }).from(messages).where(eq(messages.sessionId, sessionId));
-
+    const conditions = [eq(messages.sessionId, sessionId)];
+    
     if (options.role) {
-      query = query.where(and(eq(messages.sessionId, sessionId), eq(messages.role, options.role as any)));
-      countQuery = countQuery.where(and(eq(messages.sessionId, sessionId), eq(messages.role, options.role as any)));
+      conditions.push(eq(messages.role, options.role as any));
     }
+    
+    const whereClause = and(...conditions);
+    
+    let query = db.select().from(messages).where(whereClause);
+    const countQuery = db.select({ count: messages.id }).from(messages).where(whereClause);
 
-    query = query.orderBy(messages.createdAt);
+    query = query.orderBy(messages.createdAt) as any;
     if (options.limit) {
-      query = query.limit(options.limit);
+      query = query.limit(options.limit) as any;
     }
     if (options.offset) {
-      query = query.offset(options.offset);
+      query = query.offset(options.offset) as any;
     }
 
     const [messagesResult, countResult] = await Promise.all([
@@ -232,14 +256,20 @@ export class DatabaseSessionManager {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-    const result = await db
-      .delete(sessions)
-      .where(and(
-        eq(sessions.status, 'completed'),
-        gte(sessions.lastActivity, cutoffDate)
-      ));
+    try {
+      const result = await db
+        .delete(sessions)
+        .where(and(
+          eq(sessions.status, 'completed'),
+          gte(sessions.lastActivity, cutoffDate)
+        ))
+        .returning();
 
-    return result.rowCount || 0;
+      return result.length;
+    } catch (error) {
+      console.error('Failed to cleanup old sessions:', error);
+      return 0;
+    }
   }
 }
 

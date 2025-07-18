@@ -3,7 +3,7 @@ export abstract class ClaudeCodeUIError extends Error {
   abstract readonly code: string;
   abstract readonly category: 'subprocess' | 'websocket' | 'database' | 'parser' | 'auth' | 'validation' | 'network';
   public readonly timestamp: Date;
-  public readonly context?: Record<string, any>;
+  public readonly context: Record<string, any> | undefined;
 
   constructor(message: string, context?: Record<string, any>) {
     super(message);

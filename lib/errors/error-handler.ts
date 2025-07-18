@@ -122,6 +122,7 @@ export class ErrorHandler {
     }
 
     // Import error types to avoid circular dependency
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     const { ValidationError, DatabaseError, NetworkError, SubprocessError } = require('./error-types');
 
     // Classify common error types
@@ -248,7 +249,9 @@ export class ErrorHandler {
     const errorsByCategory: Record<string, number> = {};
     for (const [key, count] of this.errorCounts.entries()) {
       const category = key.split(':')[0];
-      errorsByCategory[category] = (errorsByCategory[category] || 0) + count;
+      if (category) {
+        errorsByCategory[category] = (errorsByCategory[category] || 0) + count;
+      }
     }
 
     const recentErrors = Array.from(this.errorCounts.entries())

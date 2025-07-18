@@ -1,6 +1,5 @@
-import { pgTable, text, timestamp, integer, decimal, jsonb, boolean, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, integer, decimal, jsonb, uuid } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { z } from 'zod';
 
 // Sessions table
 export const sessions = pgTable('sessions', {
@@ -49,36 +48,19 @@ export const sessionLogs = pgTable('session_logs', {
 });
 
 // Zod schemas for validation
-export const insertSessionSchema = createInsertSchema(sessions, {
-  sessionId: z.string().min(1),
-  status: z.enum(['idle', 'processing', 'error', 'completed']),
-  totalTokens: z.number().min(0),
-  totalCost: z.string().regex(/^\d+(\.\d{1,6})?$/),
-  messageCount: z.number().min(0),
-});
-
+export const insertSessionSchema = createInsertSchema(sessions);
 export const selectSessionSchema = createSelectSchema(sessions);
 
-export const insertMessageSchema = createInsertSchema(messages, {
-  messageId: z.string().min(1),
-  sessionId: z.string().min(1),
-  role: z.enum(['user', 'assistant', 'system']),
-  content: z.string().min(1),
-});
-
+export const insertMessageSchema = createInsertSchema(messages);
 export const selectMessageSchema = createSelectSchema(messages);
 
-export const insertSessionLogSchema = createInsertSchema(sessionLogs, {
-  sessionId: z.string().min(1),
-  action: z.string().min(1),
-});
-
+export const insertSessionLogSchema = createInsertSchema(sessionLogs);
 export const selectSessionLogSchema = createSelectSchema(sessionLogs);
 
 // Types
-export type Session = z.infer<typeof selectSessionSchema>;
-export type NewSession = z.infer<typeof insertSessionSchema>;
-export type Message = z.infer<typeof selectMessageSchema>;
-export type NewMessage = z.infer<typeof insertMessageSchema>;
-export type SessionLog = z.infer<typeof selectSessionLogSchema>;
-export type NewSessionLog = z.infer<typeof insertSessionLogSchema>;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type SessionLog = typeof sessionLogs.$inferSelect;
+export type NewSessionLog = typeof sessionLogs.$inferInsert;

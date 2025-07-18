@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+
 import { v4 as uuidv4 } from 'uuid';
+
 import {
   ProcessConfig,
   SessionMapping,
@@ -12,7 +14,7 @@ import {
 
 export class ClaudeProcessManager extends EventEmitter {
   private processes: Map<string, SessionMapping> = new Map();
-  private completionTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private completionTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private readonly COMPLETION_TIMEOUT = 30000; // 30 seconds
   private readonly MAX_CONCURRENT_SESSIONS = 100;
 
@@ -31,7 +33,7 @@ export class ClaudeProcessManager extends EventEmitter {
     const env = this.buildEnvironment(config.authConfig);
 
     try {
-      const process = spawn('claude', args, {
+      const claudeProcess = spawn('claude', args, {
         env: { ...process.env, ...env },
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: config.projectPath,
@@ -40,7 +42,7 @@ export class ClaudeProcessManager extends EventEmitter {
       const sessionMapping: SessionMapping = {
         webSessionId,
         claudeSessionId: '', // Will be set when we receive init message
-        claudeProcess: process,
+        claudeProcess: claudeProcess,
         status: 'active',
         createdAt: new Date(),
         lastActivity: new Date(),
@@ -49,7 +51,7 @@ export class ClaudeProcessManager extends EventEmitter {
       };
 
       this.processes.set(webSessionId, sessionMapping);
-      this.setupProcessHandlers(webSessionId, process);
+      this.setupProcessHandlers(webSessionId, claudeProcess);
       this.startCompletionTimeout(webSessionId);
 
       this.emit('session-created', {
@@ -58,7 +60,7 @@ export class ClaudeProcessManager extends EventEmitter {
         data: {
           sessionId: webSessionId,
           status: 'starting',
-          pid: process.pid,
+          pid: claudeProcess.pid,
         } as ProcessStatus,
         timestamp: new Date(),
       } as MessageEvent);
@@ -224,18 +226,18 @@ export class ClaudeProcessManager extends EventEmitter {
     return env;
   }
 
-  private setupProcessHandlers(sessionId: string, process: ChildProcess): void {
+  private setupProcessHandlers(sessionId: string, claudeProcess: ChildProcess): void {
     let messageBuffer = '';
 
     // Handle stdout (stream-json messages)
-    process.stdout?.on('data', (data: Buffer) => {
+    claudeProcess.stdout?.on('data', (data: Buffer) => {
       messageBuffer += data.toString();
       this.processMessageBuffer(sessionId, messageBuffer);
       messageBuffer = this.clearProcessedMessages(messageBuffer);
     });
 
     // Handle stderr (errors and diagnostics)
-    process.stderr?.on('data', (data: Buffer) => {
+    claudeProcess.stderr?.on('data', (data: Buffer) => {
       const errorText = data.toString();
       console.error(`Claude process stderr [${sessionId}]:`, errorText);
       
@@ -248,12 +250,12 @@ export class ClaudeProcessManager extends EventEmitter {
     });
 
     // Handle process exit
-    process.on('exit', (code, signal) => {
+    claudeProcess.on('exit', (code, signal) => {
       this.handleProcessExit(sessionId, code, signal);
     });
 
     // Handle process errors
-    process.on('error', (error) => {
+    claudeProcess.on('error', (error) => {
       this.handleProcessError(sessionId, error);
     });
   }
@@ -266,7 +268,7 @@ export class ClaudeProcessManager extends EventEmitter {
         try {
           const message: ClaudeMessage = JSON.parse(line);
           this.handleClaudeMessage(sessionId, message);
-        } catch (error) {
+        } catch (_error) {
           // Incomplete JSON, will be processed in next buffer
           continue;
         }
@@ -283,7 +285,7 @@ export class ClaudeProcessManager extends EventEmitter {
         try {
           JSON.parse(line);
           // Successfully parsed, can be removed
-        } catch (error) {
+        } catch (_error) {
           // Incomplete JSON, keep for next processing
           incompleteLines.push(line);
         }

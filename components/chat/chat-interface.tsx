@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useChatSession } from '@/hooks/use-chat-session';
+
 import { Button } from '@/components/ui/button';
-import { ChatMessage } from './chat-message';
-import { ChatInput } from './chat-input';
+import { useChatSession } from '@/hooks/use-chat-session';
+
 import { ChatHeader } from './chat-header';
+import { ChatInput } from './chat-input';
+import { ChatMessage } from './chat-message';
 import { ChatStatus } from './chat-status';
 
 interface ChatInterfaceProps {
@@ -45,8 +47,10 @@ export function ChatInterface({ sessionId, projectPath, className }: ChatInterfa
     if (content.startsWith('/')) {
       const parts = content.slice(1).split(' ');
       const command = parts[0];
-      const args = parts.slice(1);
-      await executeSlashCommand(command, args.length > 0 ? args : undefined);
+      if (command) {
+        const args = parts.slice(1);
+        await executeSlashCommand(command, args.length > 0 ? args : []);
+      }
     } else {
       await sendMessage(content);
     }

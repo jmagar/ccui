@@ -1,8 +1,9 @@
 'use client';
 
-import { ChatMessage as ChatMessageType } from '@/hooks/use-chat-session';
 import { formatDistanceToNow } from 'date-fns';
 import { User, Bot, Settings } from 'lucide-react';
+
+import { ChatMessage as ChatMessageType } from '@/hooks/use-chat-session';
 
 interface ChatMessageProps {
   message: ChatMessageType;

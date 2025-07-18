@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChatInterface } from '@/components/chat/chat-interface';
-import { Button } from '@/components/ui/button';
 import { Plus, FolderOpen, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+
+import { ChatInterface } from '@/components/chat/chat-interface';
+import { Button } from '@/components/ui/button';
 
 export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string>('');

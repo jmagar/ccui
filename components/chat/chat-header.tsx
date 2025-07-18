@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { 
   Trash2, 
   Settings, 
@@ -10,6 +9,8 @@ import {
   Hash,
   Folder
 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 interface ChatHeaderProps {
   sessionId: string;

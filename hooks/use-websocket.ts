@@ -57,39 +57,41 @@ export function useWebSocket() {
           }
         }, 30000);
         
-        ws.current.onclose = () => {
-          clearInterval(pingInterval);
-          setConnected(false);
+        if (ws.current) {
+          ws.current.onclose = () => {
+            clearInterval(pingInterval);
+            setConnected(false);
           
-          // Attempt reconnection if not manually closed
-          if (reconnectAttempts.current < maxReconnectAttempts) {
-            reconnectAttempts.current++;
-            console.log(`Reconnection attempt ${reconnectAttempts.current}`);
-            
-            setTimeout(() => {
-              connect();
-            }, reconnectDelay.current);
-            
-            // Exponential backoff
-            reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
-          } else {
-            setConnectionError('Failed to reconnect after multiple attempts');
-          }
-        };
-      };
-      
-      ws.current.onmessage = (event) => {
-        try {
-          const message: WSServerMessage = JSON.parse(event.data);
-          setLastMessage(message);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+            // Attempt reconnection if not manually closed
+            if (reconnectAttempts.current < maxReconnectAttempts) {
+              reconnectAttempts.current++;
+              console.log(`Reconnection attempt ${reconnectAttempts.current}`);
+              
+              setTimeout(() => {
+                connect();
+              }, reconnectDelay.current);
+              
+              // Exponential backoff
+              reconnectDelay.current = Math.min(reconnectDelay.current * 2, 30000);
+            } else {
+              setConnectionError('Failed to reconnect after multiple attempts');
+            }
+          };
+        
+          ws.current.onmessage = (event) => {
+            try {
+              const message: WSServerMessage = JSON.parse(event.data);
+              setLastMessage(message);
+            } catch (error) {
+              console.error('Error parsing WebSocket message:', error);
+            }
+          };
+          
+          ws.current.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            setConnectionError('WebSocket connection error');
+          };
         }
-      };
-      
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setConnectionError('WebSocket connection error');
       };
       
     } catch (error) {

@@ -1,11 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Enable the app directory
-    appDir: true,
-    // Enable server components
-    serverComponentsExternalPackages: ['@anthropic-ai/claude-code'],
-  },
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['@anthropic-ai/claude-code'],
   // Enable TypeScript strict mode
   typescript: {
     // Dangerously allow production builds to successfully complete even if

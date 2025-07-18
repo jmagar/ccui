@@ -1,7 +1,9 @@
-import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { parse } from 'url';
+
 import { verify } from 'jsonwebtoken';
+import { WebSocketServer, WebSocket } from 'ws';
+
 import { ClaudeProcessManager } from '@/lib/claude/process-manager';
 import { MessageEvent, ProcessConfig, AuthConfig } from '@/types/claude.types';
 
@@ -33,9 +35,11 @@ export class WebSocketManager {
   private wss: WebSocketServer;
   private connections: Map<WebSocket, WebSocketConnection> = new Map();
   private processManager: ClaudeProcessManager;
-  private pingInterval: NodeJS.Timeout;
+  private pingInterval!: ReturnType<typeof setInterval>;
+  private startTime: Date;
 
   constructor(port: number = 3001) {
+    this.startTime = new Date();
     this.wss = new WebSocketServer({ 
       port,
       verifyClient: this.verifyClient.bind(this),
@@ -48,7 +52,7 @@ export class WebSocketManager {
     console.log(`WebSocket server started on port ${port}`);
   }
 
-  private verifyClient(info: { origin: string; secure: boolean; req: IncomingMessage }): boolean {
+  private verifyClient(_info: { origin: string; secure: boolean; req: IncomingMessage }): boolean {
     // TODO: Implement proper authentication verification
     // For now, allow all connections in development
     return true;
@@ -109,7 +113,7 @@ export class WebSocketManager {
       // TODO: Verify JWT token properly
       const decoded = this.verifyToken(token);
       userId = decoded.userId;
-    } catch (error) {
+    } catch (_error) {
       ws.close(1008, 'Invalid authentication token');
       return;
     }
@@ -296,7 +300,7 @@ export class WebSocketManager {
     try {
       const decoded = verify(token, process.env.JWT_SECRET || 'dev-secret') as any;
       return { userId: decoded.userId || 'dev-user' };
-    } catch (error) {
+    } catch (_error) {
       // In development, allow a simple dev token
       if (token === 'dev-token') {
         return { userId: 'dev-user' };
@@ -326,6 +330,14 @@ export class WebSocketManager {
 
   public getSessionCount(): number {
     return this.processManager.getSessionCount();
+  }
+
+  public getUptime(): number {
+    return Date.now() - this.startTime.getTime();
+  }
+
+  public async stop(): Promise<void> {
+    this.close();
   }
 
   public close(): void {

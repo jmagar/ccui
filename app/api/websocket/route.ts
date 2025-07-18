@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
+
 import { WebSocketManager } from '@/lib/websocket/websocket-server';
 
 let wsServer: WebSocketManager | null = null;
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // In a typical Next.js app, WebSocket upgrades are handled differently
     // This is a placeholder for the WebSocket connection logic

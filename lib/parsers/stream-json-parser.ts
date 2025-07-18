@@ -1,4 +1,5 @@
 import { Transform } from 'stream';
+
 import { ClaudeMessage } from '@/types/claude.types';
 
 interface ParsedMessage {
@@ -10,7 +11,7 @@ interface ParsedMessage {
 export class StreamJsonParser extends Transform {
   private buffer: string = '';
   private messageCount: number = 0;
-  private completionTimeout: NodeJS.Timeout | null = null;
+  private completionTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly COMPLETION_TIMEOUT_MS = 5000; // 5 seconds
   private readonly disableTimeout: boolean;
 
@@ -23,13 +24,13 @@ export class StreamJsonParser extends Transform {
     this.disableTimeout = options.disableTimeout || process.env.NODE_ENV === 'test';
   }
 
-  _transform(chunk: Buffer, encoding: string, callback: Function) {
+  override _transform(chunk: Buffer, encoding: string, callback: () => void) {
     this.buffer += chunk.toString();
     this.processBuffer();
     callback();
   }
 
-  _flush(callback: Function) {
+  override _flush(callback: () => void) {
     // Process any remaining data in buffer
     if (this.buffer.trim()) {
       this.processBuffer(true);
@@ -39,7 +40,7 @@ export class StreamJsonParser extends Transform {
     callback();
   }
 
-  _destroy(error: Error | null, callback: Function) {
+  override _destroy(error: Error | null, callback: (error?: Error | null) => void) {
     // Clean up timeouts when stream is destroyed
     this.resetCompletionTimeout();
     callback(error);
@@ -90,7 +91,7 @@ export class StreamJsonParser extends Transform {
         // Handle other JSON structures (status, errors, etc.)
         this.handleNonMessage(parsed, line);
       }
-    } catch (error) {
+    } catch (_error) {
       // Handle non-JSON lines (status messages, errors, etc.)
       this.handleNonJsonLine(line);
     }

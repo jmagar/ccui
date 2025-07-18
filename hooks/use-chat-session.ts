@@ -106,10 +106,10 @@ export function useChatSession(sessionId: string) {
             content: textContent,
             timestamp: new Date(),
             metadata: {
-              tokens: claudeMessage.metadata?.tokens ?? undefined,
-              cost: claudeMessage.metadata?.cost ?? undefined,
-              toolUse: toolUse.length > 0 ? toolUse : undefined,
-              incomplete: claudeMessage.metadata?.incomplete ?? undefined,
+              ...(claudeMessage.metadata?.tokens !== undefined && { tokens: claudeMessage.metadata.tokens }),
+              ...(claudeMessage.metadata?.cost !== undefined && { cost: claudeMessage.metadata.cost }),
+              ...(toolUse.length > 0 && { toolUse }),
+              ...(claudeMessage.metadata?.incomplete !== undefined && { incomplete: claudeMessage.metadata.incomplete }),
             },
           });
         }

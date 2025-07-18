@@ -25,11 +25,8 @@ export default [
       '*.config.ts',
     ],
   },
-  ...compat.extends(
-    'next/core-web-vitals',
-    '@typescript-eslint/recommended',
-    '@typescript-eslint/recommended-requiring-type-checking'
-  ),
+  js.configs.recommended,
+  ...compat.extends('next/core-web-vitals'),
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -48,14 +45,20 @@ export default [
       '@typescript-eslint': typescriptEslint,
     },
     rules: {
+      // Include recommended TypeScript ESLint rules
+      ...typescriptEslint.configs.recommended.rules,
       // TypeScript specific rules
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_' },
+        { 
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
+        },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-const': 'error',
+      'prefer-const': 'error',
       '@typescript-eslint/no-var-requires': 'error',
       
       // React specific rules
@@ -96,7 +99,11 @@ export default [
       sourceType: 'module',
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }],
     },
   },
 ];
