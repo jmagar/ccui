@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ccui-postgres
+    environment:
+      POSTGRES_USER: ccui_user
+      POSTGRES_PASSWORD: ccui_password
+      POSTGRES_DB: claude_web_ui
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ccui_user -d claude_web_ui"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ccui-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Testing
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: ccui-postgres-test
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: claude_web_ui_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  # Redis for Testing
+  redis-test:
+    image: redis:7-alpine
+    container_name: ccui-redis-test
+    ports:
+      - "6380:6379"
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    profiles:
+      - testing
+
+  # Application (for production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ccui-app
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://ccui_user:ccui_password@postgres:5432/claude_web_ui
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    profiles:
+      - production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+  # Prometheus (for monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ccui-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana (for monitoring dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ccui-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - ccui-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_test_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  ccui-network:
+    driver: bridge
