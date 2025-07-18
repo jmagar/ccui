@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { ToastProvider } from '@/components/ui/toaster';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -8,9 +9,9 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <div>
-      {/* TODO: Add theme provider, auth provider, etc. */}
+    <ToastProvider>
+      {/* Theme and auth providers will be added here when implemented */}
       {children}
-    </div>
+    </ToastProvider>
   );
 }

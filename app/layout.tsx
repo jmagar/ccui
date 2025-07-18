@@ -13,10 +13,19 @@ export const metadata: Metadata = {
   description: 'Comprehensive web-based frontend for Anthropic\'s Claude Code CLI',
   keywords: ['claude-code', 'anthropic', 'ai', 'cli', 'web-ui'],
   authors: [{ name: 'Claude Code Web UI Team' }],
+  viewport: 'width=device-width, initial-scale=1',
+  robots: 'index, follow',
   openGraph: {
     title: 'Claude Code Web UI',
     description: 'Comprehensive web-based frontend for Anthropic\'s Claude Code CLI',
     type: 'website',
+    siteName: 'Claude Code Web UI',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Claude Code Web UI',
+    description: 'Comprehensive web-based frontend for Anthropic\'s Claude Code CLI',
   },
 };
 

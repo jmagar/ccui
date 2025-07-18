@@ -3,7 +3,7 @@
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_claude_code_ui';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
 
 // Mock environment variables that might be needed
 process.env.NEXTAUTH_SECRET = 'test-secret';
@@ -18,13 +18,15 @@ const originalConsoleLog = console.log;
 console.error = (...args) => {
   const message = args[0]?.toString() || '';
   // Suppress expected test errors
-  if (message.includes('Test subprocess error') ||
-      message.includes('Test parser error') ||
-      message.includes('Error 1') ||
-      message.includes('Error 2') ||
-      message.includes('Error 3') ||
-      message.includes('Database connection failed') ||
-      message.includes('Operation timed out after 50ms')) {
+  const suppressedPatterns = [
+    /Test subprocess error/,
+    /Test parser error/,
+    /Error [1-3]/,
+    /Database connection failed/,
+    /Operation timed out after \d+ms/
+  ];
+
+  if (suppressedPatterns.some(pattern => pattern.test(message))) {
     return; // Suppress these expected errors
   }
   originalConsoleError(...args);
@@ -66,7 +68,7 @@ afterEach(() => {
   // Force cleanup any remaining streams
   if (global.openStreams) {
     for (const stream of global.openStreams) {
-      if (stream && typeof stream.destroy === 'function') {
+      if (stream && typeof stream.destroy === 'function' && !stream.destroyed) {
         stream.destroy();
       }
     }

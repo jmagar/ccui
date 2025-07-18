@@ -39,6 +39,17 @@ export class ClaudeProcessManager extends EventEmitter {
         cwd: config.projectPath,
       });
 
+      // Handle immediate spawn errors (e.g., command not found)
+      claudeProcess.on('error', (spawnError) => {
+        if ((spawnError as any).code === 'ENOENT') {
+          throw new Error(
+            'Claude Code CLI is not installed or not found in PATH. ' +
+            'Please install Claude Code CLI from https://docs.anthropic.com/en/docs/claude-code and ensure it is in your PATH.'
+          );
+        }
+        throw new Error(`Failed to start Claude process: ${spawnError.message}`);
+      });
+
       const sessionMapping: SessionMapping = {
         webSessionId,
         claudeSessionId: '', // Will be set when we receive init message
@@ -67,6 +78,21 @@ export class ClaudeProcessManager extends EventEmitter {
 
       return sessionMapping;
     } catch (error) {
+      // Enhanced error messages for common issues
+      if (error instanceof Error) {
+        if (error.message.includes('ENOENT') || error.message.includes('not found')) {
+          throw new Error(
+            'Claude Code CLI is not installed or not found in PATH. ' +
+            'Please install Claude Code CLI from https://docs.anthropic.com/en/docs/claude-code and ensure it is in your PATH.'
+          );
+        }
+        if (error.message.includes('EACCES')) {
+          throw new Error(
+            'Permission denied when trying to execute Claude Code CLI. ' +
+            'Please check that the claude command has execute permissions.'
+          );
+        }
+      }
       throw new Error(`Failed to create Claude process: ${error}`);
     }
   }

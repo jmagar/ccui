@@ -16,8 +16,8 @@ export default function ChatPage() {
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(newSessionId);
     
-    // Attempt to detect project path from browser location or localStorage
-    const currentPath = localStorage.getItem('claude-project-path') || process.cwd() || '/home/user/project';
+    // Attempt to detect project path from localStorage or use a default fallback
+    const currentPath = localStorage.getItem('claude-project-path') || '/home/user/project';
     setProjectPath(currentPath);
   }, []);
   

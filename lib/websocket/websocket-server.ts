@@ -52,10 +52,37 @@ export class WebSocketManager {
     console.log(`WebSocket server started on port ${port}`);
   }
 
-  private verifyClient(_info: { origin: string; secure: boolean; req: IncomingMessage }): boolean {
-    // TODO: Implement proper authentication verification
-    // For now, allow all connections in development
-    return true;
+  private verifyClient(info: { origin: string; secure: boolean; req: IncomingMessage }): boolean {
+    // In development mode, allow connections with dev token in query params
+    if (process.env.NODE_ENV === 'development') {
+      const url = parse(info.req.url || '', true);
+      const token = url.query.token as string;
+      if (token === 'dev-token') {
+        return true;
+      }
+    }
+
+    try {
+      const authHeader = info.req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.error('Missing or invalid Authorization header');
+        return false;
+      }
+
+      const token = authHeader.split(' ')[1];
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        console.error('JWT_SECRET environment variable is not set');
+        return false;
+      }
+
+      // Verify token synchronously - will throw if invalid
+      verify(token, jwtSecret) as any;
+      return true; // Token is valid
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      return false; // Token is invalid or verification failed
+    }
   }
 
   private setupEventHandlers(): void {
@@ -199,6 +226,15 @@ export class WebSocketManager {
       
       if (!session) {
         // Create new session
+        // Validate API key exists
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+          throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+        }
+        if (!apiKey.startsWith('sk-ant-')) {
+          throw new Error('ANTHROPIC_API_KEY appears to be invalid (should start with sk-ant-)');
+        }
+
         const config: ProcessConfig = {
           sessionId: message.sessionId,
           userId: connection.userId,
@@ -206,7 +242,7 @@ export class WebSocketManager {
           model: 'claude-sonnet-4-20250514',
           authConfig: {
             type: 'api_key', // TODO: Get from user settings
-            apiKey: process.env.ANTHROPIC_API_KEY,
+            apiKey,
           } as AuthConfig,
         };
 
@@ -297,15 +333,23 @@ export class WebSocketManager {
       throw new Error('No token provided');
     }
 
+    // In development, allow a simple dev token
+    if (process.env.NODE_ENV === 'development' && token === 'dev-token') {
+      return { userId: 'dev-user' };
+    }
+
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+
     try {
-      const decoded = verify(token, process.env.JWT_SECRET || 'dev-secret') as any;
-      return { userId: decoded.userId || 'dev-user' };
-    } catch (_error) {
-      // In development, allow a simple dev token
-      if (token === 'dev-token') {
-        return { userId: 'dev-user' };
+      const decoded = verify(token, process.env.JWT_SECRET) as any;
+      if (!decoded.userId) {
+        throw new Error('Token missing userId claim');
       }
-      throw new Error('Invalid token');
+      return { userId: decoded.userId };
+    } catch (error) {
+      throw new Error(`Invalid token: ${error}`);
     }
   }
 

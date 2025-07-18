@@ -8,13 +8,14 @@ npx lint-staged
 npm run type-check
 
 # Ensure no sensitive data is being committed
-if grep -r "sk-ant-" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next; then
+# Check for various API key patterns
+if grep -rE "(sk-ant-|sk-|api[_-]?key|secret[_-]?key|access[_-]?token)" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude="*.md" --exclude="*.txt" --exclude=".env.example"; then
   echo "❌ Found potential API keys in staged files!"
   echo "Please remove any API keys before committing."
   exit 1
 fi
 
-if grep -r "ANTHROPIC_API_KEY.*=" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude=".env.example"; then
+if grep -r "ANTHROPIC_API_KEY\s*=" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude=".env.example" --exclude="*.md"; then
   echo "❌ Found potential API key assignments in staged files!"
   echo "Please ensure API keys are only in environment files."
   exit 1

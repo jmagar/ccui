@@ -4,7 +4,8 @@
   "description": "Comprehensive web-based frontend for Anthropic's Claude Code CLI",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsx server.ts",
+    "dev:next": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -81,6 +82,7 @@
     "prettier": "^3.3.0",
     "prettier-plugin-tailwindcss": "^0.6.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.5.0"
   },
   "engines": {

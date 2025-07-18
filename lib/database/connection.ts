@@ -3,8 +3,12 @@ import postgres from 'postgres';
 
 import * as schema from './schema';
 
-// Environment variables with defaults for development
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/claude_code_ui';
+// Environment variables validation
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not set. The application cannot start without it.');
+}
+
+const DATABASE_URL = process.env.DATABASE_URL;
 const DATABASE_MAX_CONNECTIONS = parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10');
 const DATABASE_IDLE_TIMEOUT = parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30');
 

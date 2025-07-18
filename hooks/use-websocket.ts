@@ -32,8 +32,19 @@ export function useWebSocket() {
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.hostname;
-      const port = process.env.NODE_ENV === 'development' ? '3001' : window.location.port;
-      const token = 'dev-token'; // TODO: Get from auth context
+      const port = process.env.NODE_ENV === 'development' ? '4001' : window.location.port;
+      
+      // Get token from localStorage or use dev token in development
+      let token: string;
+      if (process.env.NODE_ENV === 'development') {
+        token = 'dev-token';
+      } else {
+        token = localStorage.getItem('auth-token') || '';
+        if (!token) {
+          throw new Error('Authentication token is missing. Please log in.');
+        }
+      }
+      
       const url = `${protocol}//${host}:${port}?token=${token}`;
       
       ws.current = new WebSocket(url);

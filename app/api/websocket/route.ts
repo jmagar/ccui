@@ -10,12 +10,12 @@ export async function GET(_request: NextRequest) {
     // This is a placeholder for the WebSocket connection logic
     
     if (!wsServer) {
-      wsServer = new WebSocketManager(3001);
+      wsServer = new WebSocketManager(4001);
     }
     
     return new Response(JSON.stringify({
       message: 'WebSocket server is running',
-      port: 3001,
+      port: 4001,
       status: 'active'
     }), {
       status: 200,
