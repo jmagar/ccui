@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+
 import { ToastProvider } from '@/components/ui/toaster';
 
 interface ProvidersProps {

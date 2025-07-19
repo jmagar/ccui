@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { type ReactNode } from 'react';
 
@@ -8,12 +8,16 @@ import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: 'Claude Code Web UI',
   description: 'Comprehensive web-based frontend for Anthropic\'s Claude Code CLI',
   keywords: ['claude-code', 'anthropic', 'ai', 'cli', 'web-ui'],
   authors: [{ name: 'Claude Code Web UI Team' }],
-  viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
   openGraph: {
     title: 'Claude Code Web UI',

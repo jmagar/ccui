@@ -70,6 +70,11 @@ export class WebSocketManager {
       }
 
       const token = authHeader.split(' ')[1];
+      if (!token) {
+        console.error('No token found in Authorization header');
+        return false;
+      }
+      
       const jwtSecret = process.env.JWT_SECRET;
       if (!jwtSecret) {
         console.error('JWT_SECRET environment variable is not set');
@@ -225,24 +230,14 @@ export class WebSocketManager {
       let session = this.processManager.getSession(message.sessionId);
       
       if (!session) {
-        // Create new session
-        // Validate API key exists
-        const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) {
-          throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-        }
-        if (!apiKey.startsWith('sk-ant-')) {
-          throw new Error('ANTHROPIC_API_KEY appears to be invalid (should start with sk-ant-)');
-        }
-
+        // Create new session using Claude Code CLI with user's subscription
         const config: ProcessConfig = {
           sessionId: message.sessionId,
           userId: connection.userId,
           projectPath: process.cwd(), // TODO: Get from user settings
           model: 'claude-sonnet-4-20250514',
           authConfig: {
-            type: 'api_key', // TODO: Get from user settings
-            apiKey,
+            type: 'claude_max', // Use Claude Max subscription
           } as AuthConfig,
         };
 
